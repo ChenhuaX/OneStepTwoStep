@@ -1,4 +1,4 @@
-import { _decorator, Component, instantiate, Node, Prefab, random,EventTarget, RigidBody, SphereCollider, Vec3, director, find, Sprite, loader, assetManager, ImageAsset, SpriteFrame, Texture2D, Label, AudioClip, math } from 'cc';
+import { _decorator, Component, instantiate, Node, Prefab, random,EventTarget, RigidBody, SphereCollider, Vec3, director, find, Sprite, loader, assetManager, ImageAsset, SpriteFrame, Texture2D, Label, AudioClip, math, resources } from 'cc';
 import { PlayerController } from './PlayerController';
 import {AudioMgr} from './AudioMgr';
 const { ccclass, property } = _decorator;
@@ -13,22 +13,9 @@ enum GameState{
     GS_WIN,
     GS_LOSE
 }
-const myUrl = "http://localhost:8080";
+const myUrl = "https://iwritesegmenttree.online:443";
 @ccclass('GameManager')
 export class GameManager extends Component {
-     
-    // 赛道预制体
-    @property({type: Prefab})
-    public cubePrefab: Prefab | null = null;
-
-    // 赛道预制体
-    @property({type: Prefab})
-    public firePrefab: Prefab | null = null;
-
-    // 赛道预制体
-    @property({type: Prefab})
-    public goalPrefab: Prefab | null = null;
-
     //开始菜单
     @property({type: Node})
     public startMenu: Node | null = null;
@@ -44,16 +31,6 @@ export class GameManager extends Component {
     // player结点刚体
     @property({type: RigidBody})
     public playerRigidBody: RigidBody | null = null;
-
-    // 声音
-    @property({type: AudioClip})
-    public crash: AudioClip | null = null;
-    @property({type: AudioClip})
-    public win: AudioClip | null = null;
-    @property({type: AudioClip})
-    public lose: AudioClip | null = null;
-    @property({type: AudioClip})
-    public bgm: AudioClip | null = null;
 
     // 赛道长度
     @property
@@ -101,11 +78,22 @@ export class GameManager extends Component {
         }
         this._record = value;
     }
-
-    start() { 
+    onLoad(){
         //播放背景音乐
-        AudioMgr.inst.play(this.bgm);
-
+        this.playBgmSound();
+        // 为player创建背景图片
+        resources.load('Prefabs/Backgound', Prefab, (err, prefab)=>{
+            for(let i = 0; i < 2; i++){
+                for(let j = 0; j < 3; j++){
+                    let block = instantiate(prefab);
+                    block.setPosition(new Vec3(j*10 -10 ,i*10,-1));
+                    this.playerCtrl.node.addChild(block);
+                }
+            }  
+        });
+    }
+    start() { 
+        
         let sysInfo = wx.getSystemInfoSync();
         // 通过微信插件获取屏幕大小
         let screenWidth = sysInfo.screenWidth;
@@ -164,7 +152,6 @@ export class GameManager extends Component {
         this.curState = GameState.GS_INIT;
         // 监听游戏胜利或失败
         director.getScene().on('checkFailOrWin', (stepNum)=>{
-            //console.log(stepNum)
             console.log(this.playerCtrl.node.position)
             if(this._road[stepNum] === BlockType.BT_GOAL){
                 this.curState = GameState.GS_WIN;
@@ -172,7 +159,8 @@ export class GameManager extends Component {
                 this.curState = GameState.GS_LOSE;
             }else{
                 // 触平地的碰撞声音
-                AudioMgr.inst.playOneShot(this.crash);
+                this.playCrashSound();
+                
             }
         }, this)
     }
@@ -219,8 +207,41 @@ export class GameManager extends Component {
             }
         })
     }
-
     
+    playLoseSound(){
+        resources.load("Music/fail", AudioClip, (err, clip) => {
+            // 暂停bgm，并播放失败音效
+            AudioMgr.inst.pause();
+            AudioMgr.inst.playOneShot(clip, 0.5);
+            setTimeout(() => {
+                AudioMgr.inst.resume()
+            }, 2000);
+        });
+    }
+    
+    playWinSound(){
+        resources.load("Music/win", AudioClip, (err, clip) => {
+            // 暂停bgm，并播放获胜音效
+            AudioMgr.inst.pause();
+            AudioMgr.inst.playOneShot(clip);
+            setTimeout(() => {
+                AudioMgr.inst.resume()
+            }, 4000);
+        });
+    }
+    playBgmSound(){
+        resources.load("Music/bgm", AudioClip, (err, clip) => {
+            //播放背景音乐
+            AudioMgr.inst.play(clip);
+            console.log("播放了bgm")
+        });
+    }
+
+    playCrashSound(){
+        resources.load("Music/crash", AudioClip, (err, clip) => {
+            AudioMgr.inst.playOneShot(clip);
+        });
+    }
     //初始化游戏状态
     init(){
 
@@ -228,7 +249,6 @@ export class GameManager extends Component {
             this.active.active = false;
             this.playerCtrl.node.setPosition(new Vec3(0,1,0));
             this.playerCtrl.stepNum = 0;
-
         }
         if(this.startMenu){
             this.startMenu.active = true;
@@ -270,13 +290,8 @@ export class GameManager extends Component {
                 break;
             case GameState.GS_LOSE:
                 console.log("lose")
-                // 暂停bgm，并播放失败音效
-                AudioMgr.inst.pause();
-                AudioMgr.inst.playOneShot(this.lose, 0.5);
-                setTimeout(() => {
-                    AudioMgr.inst.resume()
-                }, 2000);
-
+                this.playLoseSound();
+                    
                 if(this.playerCtrl){
                     if(this.playTime){
                         this.playTime.node.active = false;
@@ -296,14 +311,8 @@ export class GameManager extends Component {
                 }, 1000)
                 break;
             case GameState.GS_WIN:
-                console.log("win");
-                // 暂停bgm，并播放获胜音效
-                AudioMgr.inst.pause();
-                AudioMgr.inst.playOneShot(this.win);
-                setTimeout(() => {
-                    AudioMgr.inst.resume()
-                }, 4000);
-
+                console.log("win")
+                this.playWinSound();
                 if(this.playTime){
                     this.playTime.node.active = false;
                 }
@@ -342,39 +351,37 @@ export class GameManager extends Component {
         this._road.push(BlockType.BT_GOAL);
         this._road.push(BlockType.BT_GOAL);
         for(let i = 0; i < this.roadLength + 2; i++){
-            let block = this.spawnBlockByType(this._road[i]);
-            if(this._road[i] == BlockType.BT_STONE){
-                block.setPosition(new Vec3(i,0,0));
-            }else if(this._road[i] == BlockType.BT_NONE){
-                block.setPosition(new Vec3(i,-0.5,0));
-            }else if(this._road[i] == BlockType.BT_GOAL){
-                block.setPosition(new Vec3(i,0.5,0));
-            }
-            
-            this.node.addChild(block);
+            //加载赛道预制体
+            this.spawnBlockByType(this._road[i], i);
         }
     }
 
     // 实例化预制体
-    spawnBlockByType(type: BlockType){
-        if(!this.cubePrefab) return null;
-        
-        let block: Node | null = null;
+    spawnBlockByType(type: BlockType, i: number){
         switch(type){
             case BlockType.BT_STONE:
-                block = instantiate(this.cubePrefab);
+                resources.load("Prefabs/Cube", Prefab, (err, prefab) => {
+                    let block = instantiate(prefab)
+                    block.setPosition(new Vec3(i,0,0));
+                    this.node.addChild(block);
+                });
                 break;
             case BlockType.BT_NONE:
-                block = instantiate(this.firePrefab)
+                resources.load("Prefabs/fire", Prefab, (err, prefab) => {
+                    let block = instantiate(prefab)
+                    block.setPosition(new Vec3(i,-0.5,0));
+                    this.node.addChild(block);
+                });
                 break;
             case BlockType.BT_GOAL:
-                block = instantiate(this.goalPrefab)
+                resources.load("Prefabs/Goal", Prefab, (err, prefab) => {
+                    let block = instantiate(prefab)
+                    block.setPosition(new Vec3(i,0.5,0));
+                    this.node.addChild(block);
+                });
                 break;
         }
-        return block;
     }
-
-
 }
 
 

@@ -2,7 +2,7 @@ import { _decorator, Component, instantiate, Node, Prefab, Size, size, SpriteFra
 const { ccclass, property } = _decorator;
 
 
-const myUrl = "http://localhost:8080";
+const myUrl = "https://iwritesegmenttree.online:443";
 
 @ccclass('RandingManager')
 export class RandingManager extends Component {

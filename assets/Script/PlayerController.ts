@@ -1,12 +1,10 @@
-import { _decorator, Component, Animation, Vec3, director, Scene, AudioClip} from 'cc';
+import { _decorator, Component, Animation, Vec3, director, Scene, AudioClip, resources, AnimationClip, Prefab, instantiate, Quat} from 'cc';
 
 const { ccclass, property } = _decorator;
 @ccclass('PlayerController')
 export class PlayerController extends Component {
-    @property({type: Animation})
-    public BodyAnim: Animation | null = null;
-
-
+    
+    public BodyAnim: Animation  = null;
 
     private startJump : boolean  = false
     private _jumpStep : number = 0
@@ -35,6 +33,12 @@ export class PlayerController extends Component {
         this._stepNum = num;
     }
     start() {
+        resources.load("Prefabs/Body", Prefab, (err, prefab) =>{
+            let block = instantiate(prefab)
+            this.node.addChild(block);
+            this.BodyAnim = block.getComponent(Animation);
+        });
+        
         this.scene= director.getScene();
     }
     protected onDestroy(): void {
@@ -77,20 +81,16 @@ export class PlayerController extends Component {
         }
     }
     jumpByStep(step: number){
-
         if(this._startJump) return;
-
         if(this.BodyAnim){
+            console.log("anim")
             if(step === 1){
-                this.BodyAnim.play('oneStep')
-            }
-            if(step === 2){
+                this.BodyAnim.play('oneStep')    
+            }else if(step === 2){
                 this.BodyAnim.play('twoStep')
             }
-            this.stepNum += step;
-            
         }
-
+        this.stepNum += step;
         if(step === 1) this._jumpTime = 0.1
         if(step === 2) this._jumpTime = 0.2
 
