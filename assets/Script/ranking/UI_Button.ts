@@ -4,7 +4,7 @@ const { ccclass, property } = _decorator;
 @ccclass('UI_Button')
 export class UI_Button extends Component {
     onclick(){
-        director.loadScene("scene");
+        this.node.active = false;
     }
     start() {
 

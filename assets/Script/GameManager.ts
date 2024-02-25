@@ -18,28 +18,32 @@ const myUrl = "https://iwritesegmenttree.online:443";
 export class GameManager extends Component {
     //开始菜单
     @property({type: Node})
-    public startMenu: Node | null = null;
+    private startMenu: Node | null = null;
 
     // 玩家跳跃行为按钮
     @property({type:Node})
-    public active: Node | null = null;
+    private active: Node | null = null;
 
     // player结点绑定的ctrl组件
     @property({type: PlayerController})
-    public playerCtrl: PlayerController | null = null;
+    private playerCtrl: PlayerController | null = null;
 
     // player结点刚体
     @property({type: RigidBody})
-    public playerRigidBody: RigidBody | null = null;
+    private playerRigidBody: RigidBody | null = null;
 
     // 赛道长度
     @property
-    public roadLength = 50;
+    private roadLength = 50;
     private _road: BlockType[] = [];
 
     //记录玩家成绩
     @property({type:Label})
-    public playTime: Label | null = null;
+    private playTime: Label | null = null;
+
+    // 排行榜
+    @property({type: Node})
+    private ranking: Node | null = null;
 
     // 游戏当前状态
     private _curState: GameState | null = null;
@@ -93,7 +97,6 @@ export class GameManager extends Component {
         });
     }
     start() { 
-        
         let sysInfo = wx.getSystemInfoSync();
         // 通过微信插件获取屏幕大小
         let screenWidth = sysInfo.screenWidth;
@@ -239,6 +242,7 @@ export class GameManager extends Component {
 
     playCrashSound(){
         resources.load("Music/crash", AudioClip, (err, clip) => {
+            console.log('playsound')
             AudioMgr.inst.playOneShot(clip);
         });
     }
@@ -258,7 +262,7 @@ export class GameManager extends Component {
     }
     
     toRanking(){
-        director.loadScene("ranking");
+        this.ranking.active = true;
     }
     
     // 切换游戏状态至GS_PLAYING状态
